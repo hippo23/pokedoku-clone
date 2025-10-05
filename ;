@@ -1,0 +1,398 @@
+import 'package:flutter/material.dart';
+import 'package:pokedoku/pokemon_type.dart';
+import 'package:provider/provider.dart';
+import 'package:pokedoku/pokeapi.dart';
+import 'package:pokedoku/controller.dart';
+
+class DemoView {
+  late ViewObserver _observer;
+  ViewState? _viewState;
+
+  void attachObserver(ViewObserver observer) {
+    _observer = observer;
+  }
+
+  void start() {
+    var viewState = ViewState();
+    _viewState = viewState;
+
+    runApp(
+      MultiProvider(
+        providers: [
+          Provider.value(value: this), // makes DemoView available
+        ],
+        child: FlutterApp(this, viewState),
+      ),
+    );
+  }
+
+  void setGameDone(bool state) {
+    if (_viewState == null) {
+      return;
+    }
+
+    _viewState?.setGameDone(state);
+  }
+
+  Future<PokemonApiFetchReturn?> onConfirmInput(String input) async {
+    return await _observer.onConfirmInput(input);
+  }
+}
+
+class FlutterApp extends StatelessWidget {
+  const FlutterApp(this._view, this._viewState, {super.key});
+  final ViewState _viewState;
+  final DemoView _view;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
+        fontFamily: 'PressStart2P',
+      ),
+      home: const HomePage(),
+    );
+  }
+}
+
+class ViewState extends ChangeNotifier {
+  // the only state we need is to know if the game is done playing
+  bool _isGameDone = false;
+
+  void setGameDone(bool state) {
+    _isGameDone = state;
+  }
+
+  void updateView() {
+    notifyListeners();
+  }
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      body: Container(
+        color: colorScheme.onPrimaryContainer,
+        width: double.infinity,
+        height: double.infinity,
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Pokedoku',
+                  style: TextStyle(color: colorScheme.onPrimary, fontSize: 30),
+                ),
+              ],
+            ),
+            SizedBox(width: 700, height: 700, child: const GameGridUsingView()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class GameGrid extends StatelessWidget {
+  const GameGrid({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Table(
+          columnWidths: const <int, TableColumnWidth>{
+            0: FlexColumnWidth(),
+            1: FlexColumnWidth(),
+            2: FlexColumnWidth(),
+            3: FlexColumnWidth(),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: <TableRow>[
+            TableRow(
+              children: <Widget>[
+                SizedBox(height: 100),
+                Container(
+                  padding: EdgeInsets.all(5),
+                  child: Center(
+                    child: GameGridText(color: Colors.black12, text: 'Johto'),
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(5),
+                  child: Center(
+                    child: GameGridText(color: Colors.purple, text: 'Ground'),
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(5),
+                  child: Center(
+                    child: GameGridText(color: Colors.blue, text: 'Flying'),
+                  ),
+                ),
+              ],
+            ),
+            TableRow(
+              children: <Widget>[
+                Container(
+                  height: 140,
+                  padding: EdgeInsets.all(15),
+                  child: Center(
+                    child: GameGridText(color: Colors.brown, text: 'Ground'),
+                  ),
+                ),
+                SizedBox(
+                  height: 140,
+                  child: GameGridPokemonCell(topLeftRadius: 16),
+                ),
+                SizedBox(height: 140, child: GameGridPokemonCell()),
+                SizedBox(
+                  height: 140,
+                  child: GameGridPokemonCell(topRightRadius: 16),
+                ),
+              ],
+            ),
+            TableRow(
+              children: <Widget>[
+                Container(
+                  height: 140,
+                  padding: EdgeInsets.all(15),
+                  child: Center(
+                    child: GameGridText(color: Colors.lightBlue, text: 'Ice'),
+                  ),
+                ),
+                SizedBox(height: 140, child: GameGridPokemonCell()),
+                SizedBox(height: 140, child: GameGridPokemonCell()),
+                SizedBox(height: 140, child: GameGridPokemonCell()),
+              ],
+            ),
+            TableRow(
+              children: <Widget>[
+                Container(
+                  height: 140,
+                  padding: EdgeInsets.all(15),
+                  child: Center(
+                    child: GameGridText(color: Colors.red, text: 'Fire'),
+                  ),
+                ),
+                SizedBox(
+                  height: 140,
+                  child: GameGridPokemonCell(bottomLeftRadius: 16),
+                ),
+                SizedBox(height: 140, child: GameGridPokemonCell()),
+                SizedBox(
+                  height: 140,
+                  child: GameGridPokemonCell(bottomRightRadius: 16),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class GameGridUsingView extends StatelessWidget {
+  const GameGridUsingView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 4,
+      childAspectRatio: 1.5,
+      children: [
+        SizedBox(child: null),
+        Container(
+          padding: EdgeInsets.all(5),
+          child: Center(
+            child: GameGridText(color: Colors.black12, text: 'Johto'),
+          ),
+        ),
+        Container(
+          padding: EdgeInsets.all(5),
+          child: Center(
+            child: GameGridText(color: Colors.purple, text: 'Poison'),
+          ),
+        ),
+        Container(
+          padding: EdgeInsets.all(5),
+          child: Center(
+            child: GameGridText(color: Colors.blue, text: 'Flying'),
+          ),
+        ),
+        Container(
+          padding: EdgeInsets.all(15),
+          child: Center(
+            child: GameGridText(color: Colors.blue, text: 'Flying'),
+          ),
+        ),
+        SizedBox(child: GameGridPokemonCell(topLeftRadius: 16)),
+        SizedBox(child: GameGridPokemonCell()),
+        SizedBox(child: GameGridPokemonCell(topRightRadius: 16)),
+        Container(
+          padding: EdgeInsets.all(15),
+          child: Center(
+            child: GameGridText(color: Colors.blue, text: 'Flying'),
+          ),
+        ),
+        SizedBox(child: GameGridPokemonCell()),
+        SizedBox(child: GameGridPokemonCell()),
+        SizedBox(child: GameGridPokemonCell()),
+        Container(
+          padding: EdgeInsets.all(15),
+          child: Center(
+            child: GameGridText(color: Colors.blue, text: 'Flying'),
+          ),
+        ),
+        SizedBox(child: GameGridPokemonCell(bottomLeftRadius: 16)),
+        SizedBox(child: GameGridPokemonCell()),
+        SizedBox(child: GameGridPokemonCell(bottomRightRadius: 16)),
+      ],
+    );
+  }
+}
+
+class GameGridPokemonCell extends StatefulWidget {
+  const GameGridPokemonCell({
+    super.key,
+    this.topLeftRadius = 0,
+    this.topRightRadius = 0,
+    this.bottomRightRadius = 0,
+    this.bottomLeftRadius = 0,
+    this.child,
+  });
+
+  final double topLeftRadius;
+  final double topRightRadius;
+  final double bottomLeftRadius;
+  final double bottomRightRadius;
+  final Widget? child;
+
+  @override
+  State<GameGridPokemonCell> createState() => _GameGridPokemonCellState();
+}
+
+class _GameGridPokemonCellState extends State<GameGridPokemonCell> {
+  // each time we input something, set _isFetching to true
+  bool _isFetching = false;
+  // if the fetch function return value is not null, set final
+  // to true so that we can no longer edit the data
+  bool _isFinal = false;
+  String? _imgUrl;
+
+  void toggleFetch() {
+    setState(() {
+      _isFetching = !_isFetching;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final view = Provider.of<DemoView>(context, listen: false);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Container(
+            padding: EdgeInsets.all(1),
+            child: Container(
+              padding: EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: colorScheme.inversePrimary,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(widget.bottomLeftRadius),
+                  bottomRight: Radius.circular(widget.bottomRightRadius),
+                  topLeft: Radius.circular(widget.topLeftRadius),
+                  topRight: Radius.circular(widget.topRightRadius),
+                ),
+              ),
+              child: Center(
+                child: !_isFinal
+                    ? (!_isFetching
+                          ? TextField(
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Pokemon',
+                                labelStyle: TextStyle(fontSize: 10),
+                              ),
+                              style: TextStyle(fontSize: 10),
+                              onSubmitted: (textInput) async {
+                                toggleFetch();
+                                PokemonApiFetchReturn? res = await view
+                                    .onConfirmInput(
+                                      textInput,
+                                    ); // wait for async task
+
+                                if (res != null) {
+                                  _isFinal = true;
+                                  _imgUrl = res.imgUrl;
+                                }
+                                toggleFetch();
+                              },
+                            )
+                          : CircularProgressIndicator())
+                    : Image(image: NetworkImage(_imgUrl!)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class SelectPokemonPopup extends StatelessWidget {
+  const SelectPokemonPopup({super.key, required this.conditions});
+
+  final Map<String, dynamic> conditions;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox();
+  }
+}
+
+class GameGridText extends StatelessWidget {
+  const GameGridText({super.key, required this.color, required this.text});
+
+  final Color color;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Container(
+        padding: EdgeInsets.only(left: 10, right: 10, top: 5, bottom: 5),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+          ),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ),
+      ),
+    );
+  }
+}
